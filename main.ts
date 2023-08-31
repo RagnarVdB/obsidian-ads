@@ -41,7 +41,6 @@ function createBibNote(vault: Vault, bibInfo: BibInfo) {
     journal::${bibInfo.journal}
     ads::${bibInfo.ADSlink}
     `;
-	console.log("creating note", noteName);
 	vault.create(noteName, content);
 }
 
@@ -58,9 +57,7 @@ function getBibCode(input: string): Bibcode | null {
 }
 
 function parseBibTex(bibtex: string): BibInfo {
-	console.log(bibtex);
 	const { entryTags } = bibtexParse.toJSON(bibtex)[0];
-	console.log(entryTags);
 	const title = entryTags.title.replace("{", "").replace("}", "");
 	const authors = entryTags.author.split(" and ").map((a: string) => {
 		const [last, first] = a.split(", ");
@@ -90,12 +87,10 @@ async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
 			bibcode: [bibcode],
 		}),
 	});
-	console.log(response);
 	if (response.status !== 200) {
 		throw new Error("Request failed");
 	}
 	const data = response.json;
-	console.log(data);
 	return parseBibTex(data.export);
 }
 
