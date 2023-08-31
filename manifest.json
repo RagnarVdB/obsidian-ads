@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-ads",
+	"name": "Obsidian Ads",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Obsidian plugin to make a note from an ADS paper.",
+	"author": "Obsidian",
+	"authorUrl": "https://obsidian.md",
+	"isDesktopOnly": false
+}
