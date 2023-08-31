@@ -1,5 +1,15 @@
-import { App, Modal, Plugin, Setting, Vault } from "obsidian";
+import {
+	App,
+	Modal,
+	Plugin,
+	Setting,
+	Vault,
+	Notice,
+	requestUrl,
+} from "obsidian";
 import dedent from "ts-dedent";
+import bibtexParse from "bibtex-parse-js";
+import { key } from "./adskey";
 interface BibInfo {
 	title: string;
 	authors: [string, string][];
@@ -8,18 +18,7 @@ interface BibInfo {
 	ADSlink: string;
 }
 
-function getBibInfo(link: string): BibInfo {
-	return {
-		title: "title",
-		authors: [
-			["Jinmi", "Yoon"],
-			["Timothy C.", "Beers"],
-		],
-		year: 2021,
-		journal: "journal",
-		ADSlink: link,
-	};
-}
+type Bibcode = string;
 
 function getNoteName(bibInfo: BibInfo): string {
 	if (bibInfo.authors.length > 2) {
@@ -46,6 +45,60 @@ function createBibNote(vault: Vault, bibInfo: BibInfo) {
 	vault.create(noteName, content);
 }
 
+function getBibCode(input: string): Bibcode | null {
+	if (input.includes("ui.adsabs.harvard.edu/abs/")) {
+		const l = input.split("/");
+		const i = l.indexOf("ui.adsabs.harvard.edu") + 2;
+		return l[i];
+	} else if (!isNaN(Number(input.slice(0, 4)))) {
+		return input;
+	} else {
+		return null;
+	}
+}
+
+function parseBibTex(bibtex: string): BibInfo {
+	console.log(bibtex);
+	const { entryTags } = bibtexParse.toJSON(bibtex)[0];
+	console.log(entryTags);
+	const title = entryTags.title.replace("{", "").replace("}", "");
+	const authors = entryTags.author.split(" and ").map((a: string) => {
+		const [last, first] = a.split(", ");
+		return [first, last.replace("{", "").replace("}", "")];
+	});
+	const year = Number(entryTags.year);
+	const journal = entryTags.journal;
+	const ADSlink = entryTags.adsurl;
+	return {
+		title,
+		authors,
+		year,
+		journal,
+		ADSlink,
+	};
+}
+
+async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
+	const response = await requestUrl({
+		url: "https://api.adsabs.harvard.edu/v1/export/bibtex",
+		headers: {
+			Authorization: "Bearer " + key,
+		},
+		method: "POST",
+		contentType: "application/json",
+		body: JSON.stringify({
+			bibcode: [bibcode],
+		}),
+	});
+	console.log(response);
+	if (response.status !== 200) {
+		throw new Error("Request failed");
+	}
+	const data = response.json;
+	console.log(data);
+	return parseBibTex(data.export);
+}
+
 export default class ObsidianADS extends Plugin {
 	async onload() {
 		// This adds a simple command that can be triggered anywhere
@@ -54,8 +107,14 @@ export default class ObsidianADS extends Plugin {
 			name: "Create note from ADS link",
 			callback: () => {
 				new BibInput(this.app, (input) => {
-					const bibInfo = getBibInfo(input);
-					createBibNote(this.app.vault, bibInfo);
+					const bibcode = getBibCode(input);
+					if (!bibcode) {
+						new Notice("Invalid input");
+						return;
+					}
+					requestBibInfo(bibcode).then((bibInfo) => {
+						createBibNote(this.app.vault, bibInfo);
+					});
 				}).open();
 			},
 		});
