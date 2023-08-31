@@ -1,4 +1,4 @@
-import { App, Modal, Plugin } from "obsidian";
+import { App, Modal, Plugin, Setting } from "obsidian";
 
 export default class ObsidianADS extends Plugin {
 	async onload() {
@@ -7,7 +7,9 @@ export default class ObsidianADS extends Plugin {
 			id: "open-sample-modal-simple",
 			name: "Open sample modal (simple)",
 			callback: () => {
-				new SampleModal(this.app).open();
+				new BibInput(this.app, (input) => {
+					console.log(input);
+				}).open();
 			},
 		});
 	}
@@ -15,14 +17,40 @@ export default class ObsidianADS extends Plugin {
 	onunload() {}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
+export class BibInput extends Modal {
+	result: string;
+	onSubmit: (result: string) => void;
+
+	constructor(app: App, onSubmit: (result: string) => void) {
 		super(app);
+		this.onSubmit = onSubmit;
 	}
 
 	onOpen() {
 		const { contentEl } = this;
-		contentEl.setText("Woah!");
+		contentEl.createEl("h1", { text: "ADS link / Bibcode:" });
+
+		new Setting(contentEl).setName("Link").addText((text) =>
+			text.onChange((value) => {
+				this.result = value;
+			})
+		);
+
+		new Setting(contentEl).addButton((btn) =>
+			btn
+				.setButtonText("Submit")
+				.setCta()
+				.onClick(() => {
+					this.close();
+					this.onSubmit(this.result);
+				})
+		);
+		contentEl.addEventListener("keyup", (e) => {
+			if (e.key === "Enter" && this.result) {
+				this.close();
+				this.onSubmit(this.result);
+			}
+		});
 	}
 
 	onClose() {
