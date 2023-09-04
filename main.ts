@@ -1,14 +1,15 @@
+import bibtexParse from "bibtex-parse-js";
 import {
 	App,
 	Modal,
+	Notice,
 	Plugin,
 	Setting,
 	Vault,
-	Notice,
 	requestUrl,
 } from "obsidian";
-import dedent from "ts-dedent";
-import bibtexParse from "bibtex-parse-js";
+// @ts-ignore
+import { dump } from "js-yaml";
 import { key } from "./adskey";
 interface BibInfo {
 	title: string;
@@ -32,15 +33,18 @@ function getNoteName(bibInfo: BibInfo): string {
 
 function createBibNote(vault: Vault, bibInfo: BibInfo) {
 	const noteName = getNoteName(bibInfo) + ".md";
-	const content = dedent`
-    #paper
-    pdf::
-    title::${bibInfo.title}
-    authors::${bibInfo.authors.map((a) => a.join(" ")).join(", ")}
-    year::${bibInfo.year}
-    journal::${bibInfo.journal}
-    ads::${bibInfo.ADSlink}
-    `;
+	const properties = {
+		tags: ["paper"],
+		pdf: "",
+		title: bibInfo.title,
+		authors: bibInfo.authors.map((a) => a.join(" ")),
+		year: bibInfo.year,
+		journal: bibInfo.journal,
+		ads: bibInfo.ADSlink,
+	};
+	const yaml = dump(properties);
+	const content = "---\n" + yaml + "---\n";
+
 	vault.create(noteName, content);
 }
 
@@ -76,6 +80,7 @@ function parseBibTex(bibtex: string): BibInfo {
 }
 
 async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
+	console.log(bibcode);
 	const response = await requestUrl({
 		url: "https://api.adsabs.harvard.edu/v1/export/bibtex",
 		headers: {
@@ -87,6 +92,7 @@ async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
 			bibcode: [bibcode],
 		}),
 	});
+	console.log("response", response)
 	if (response.status !== 200) {
 		throw new Error("Request failed");
 	}
