@@ -52,9 +52,9 @@ function getBibCode(input: string): Bibcode | null {
 	if (input.includes("ui.adsabs.harvard.edu/abs/")) {
 		const l = input.split("/");
 		const i = l.indexOf("ui.adsabs.harvard.edu") + 2;
-		return l[i];
+		return decodeURIComponent(l[i]);
 	} else if (!isNaN(Number(input.slice(0, 4)))) {
-		return input;
+		return decodeURIComponent(input);
 	} else {
 		return null;
 	}
@@ -80,7 +80,6 @@ function parseBibTex(bibtex: string): BibInfo {
 }
 
 async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
-	console.log(bibcode);
 	const response = await requestUrl({
 		url: "https://api.adsabs.harvard.edu/v1/export/bibtex",
 		headers: {
@@ -92,7 +91,6 @@ async function requestBibInfo(bibcode: Bibcode): Promise<BibInfo> {
 			bibcode: [bibcode],
 		}),
 	});
-	console.log("response", response)
 	if (response.status !== 200) {
 		throw new Error("Request failed");
 	}
