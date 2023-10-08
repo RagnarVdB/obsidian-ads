@@ -21,13 +21,20 @@ interface BibInfo {
 
 type Bibcode = string;
 
+function removeSpecialChars(str: string): string {
+	return str.replace(/[^\w\s]/gi, "");
+}
 function getNoteName(bibInfo: BibInfo): string {
 	if (bibInfo.authors.length > 2) {
-		return `${bibInfo.authors[0][1]} et al. ${bibInfo.year}`;
+		return removeSpecialChars(
+			`${bibInfo.authors[0][1]} et al. ${bibInfo.year}`
+		);
 	} else if (bibInfo.authors.length === 2) {
-		return `${bibInfo.authors[0][1]} & ${bibInfo.authors[1][1]} ${bibInfo.year}`;
+		return removeSpecialChars(
+			`${bibInfo.authors[0][1]} & ${bibInfo.authors[1][1]} ${bibInfo.year}`
+		);
 	} else {
-		return `${bibInfo.authors[0][1]} ${bibInfo.year}`;
+		return removeSpecialChars(`${bibInfo.authors[0][1]} ${bibInfo.year}`);
 	}
 }
 
